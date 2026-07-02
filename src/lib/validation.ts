@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const MAX_AI_MESSAGE_LENGTH = 800;
+
 export const passwordSchema = z
   .string()
   .min(8)
@@ -16,7 +18,7 @@ export const transactionSchema = z.object({
 });
 
 export const aiMessageSchema = z.object({
-  message: z.string().min(3).max(800),
+  message: z.string().min(3).max(MAX_AI_MESSAGE_LENGTH),
   language: z.enum(['en', 'ar']),
   plan: z.enum(['free', 'individual', 'groups', 'special']),
 });

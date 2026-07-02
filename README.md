@@ -72,6 +72,7 @@ Open `http://localhost:3000`.
 2. Add `.env.local.example` variables in Vercel Project Settings.
 3. Deploy.
 4. Ensure Firebase rules are restricted to authenticated users.
+5. For production scale, replace in-memory API rate limit storage with Redis/KV (e.g., Upstash).
 
 ## Tester Guide
 ### Demo account

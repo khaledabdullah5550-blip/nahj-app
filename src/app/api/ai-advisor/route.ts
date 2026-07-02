@@ -4,6 +4,8 @@ import { isRateLimited } from '@/lib/rate-limit';
 import { getOpenAIClient } from '@/lib/openai';
 import { PLAN_LIMITS } from '@/types';
 
+const MAX_CONTEXT_TRANSACTIONS = 150;
+
 export async function POST(request: NextRequest) {
   const key = request.headers.get('x-forwarded-for') ?? 'local';
 
@@ -26,7 +28,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'AI_DISABLED_FOR_PLAN' }, { status: 403 });
   }
 
-  const transactions = Array.isArray(body.transactions) ? body.transactions.slice(0, 150) : [];
+  // Keep prompt context bounded for predictable latency/token usage.
+  const transactions = Array.isArray(body.transactions) ? body.transactions.slice(0, MAX_CONTEXT_TRANSACTIONS) : [];
   const totalExpense = transactions.filter((item: { type?: string }) => item.type === 'expense').reduce((sum: number, item: { amount?: number }) => sum + Number(item.amount ?? 0), 0);
   const totalIncome = transactions.filter((item: { type?: string }) => item.type === 'income').reduce((sum: number, item: { amount?: number }) => sum + Number(item.amount ?? 0), 0);
 
@@ -39,9 +42,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ reply: fallback, source: 'fallback' });
   }
 
-  const completion = await client.responses.create({
+  const completion = await client.chat.completions.create({
     model: 'gpt-4.1-mini',
-    input: [
+    messages: [
       {
         role: 'system',
         content:
@@ -55,9 +58,9 @@ export async function POST(request: NextRequest) {
       },
     ],
     temperature: 0.4,
-    max_output_tokens: 350,
+    max_tokens: 350,
   });
 
-  const reply = completion.output_text?.trim() || fallback;
+  const reply = completion.choices?.[0]?.message?.content?.trim() || fallback;
   return NextResponse.json({ reply, source: 'openai' });
 }

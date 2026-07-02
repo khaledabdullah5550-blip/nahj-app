@@ -29,11 +29,14 @@ export interface Budget {
   createdAt: Date;
 }
 
-export const PLAN_LIMITS: Record<PlanTier, { transactionsPerMonth: number; aiEnabled: boolean; storage: string; maxPersons: number }> = {
-  free: { transactionsPerMonth: 30, aiEnabled: false, storage: '1GB', maxPersons: 1 },
-  individual: { transactionsPerMonth: Number.POSITIVE_INFINITY, aiEnabled: true, storage: '10GB', maxPersons: 1 },
-  groups: { transactionsPerMonth: Number.POSITIVE_INFINITY, aiEnabled: true, storage: 'Unlimited', maxPersons: 4 },
-  special: { transactionsPerMonth: Number.POSITIVE_INFINITY, aiEnabled: true, storage: '10GB', maxPersons: 1 },
+export const PLAN_LIMITS: Record<
+  PlanTier,
+  { transactionsPerMonth: number; aiEnabled: boolean; storageGb: number; maxPersons: number }
+> = {
+  free: { transactionsPerMonth: 30, aiEnabled: false, storageGb: 1, maxPersons: 1 },
+  individual: { transactionsPerMonth: Number.POSITIVE_INFINITY, aiEnabled: true, storageGb: 10, maxPersons: 1 },
+  groups: { transactionsPerMonth: Number.POSITIVE_INFINITY, aiEnabled: true, storageGb: Number.POSITIVE_INFINITY, maxPersons: 4 },
+  special: { transactionsPerMonth: Number.POSITIVE_INFINITY, aiEnabled: true, storageGb: 10, maxPersons: 1 },
 };
 
 export const INCOME_CATEGORIES = ['salary', 'investment', 'bonus', 'sales', 'interest', 'other'] as const;
