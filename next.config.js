@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Required for Lambda/Docker deployment via Serverless Framework
+  output: 'standalone',
 
   async headers() {
     return [

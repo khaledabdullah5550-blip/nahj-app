@@ -6,6 +6,9 @@ export const CreateUserSchema = z.object({
     .string()
     .min(2, 'الاسم يجب أن يكون على الأقل حرفين')
     .max(100, 'الاسم يجب ألا يتجاوز 100 حرف')
+    // Unicode blocks: Arabic (0600–06FF), Arabic Supplement (0750–077F),
+    // Arabic Extended-A (08A0–08FF), Arabic Presentation Forms-A (FB50–FDFF),
+    // Arabic Presentation Forms-B (FE70–FEFF), plus whitespace/word chars/dots/dashes
     .regex(/^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDCF\uFDF0-\uFDFF\uFE70-\uFEFF\s\w.-]+$/, 'الاسم يحتوي على أحرف غير مسموح بها'),
   email: z
     .string()

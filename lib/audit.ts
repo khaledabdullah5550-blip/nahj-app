@@ -1,4 +1,5 @@
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { v4 as uuidv4 } from 'uuid';
 import { getDocumentClient, TABLE_NAMES, AWS_REGION } from './aws';
 
 export type AuditAction =
@@ -68,7 +69,7 @@ export async function logAuditEvent(
 
   const retentionDays = isFinancial ? FINANCIAL_AUDIT_RETENTION_DAYS : AUDIT_RETENTION_DAYS;
   const now = new Date();
-  const logId = `${now.getTime()}-${Math.random().toString(36).slice(2, 11)}`;
+  const logId = uuidv4();
 
   const entry: AuditLogEntry = {
     logId,

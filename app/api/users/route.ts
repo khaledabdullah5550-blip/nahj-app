@@ -103,11 +103,11 @@ export async function POST(request: NextRequest) {
       pdplCategory: 'personal_data',
     });
 
-    // Return user without nationalId for security
-    const { nationalId: _nid, ...safeUser } = created;
-    void _nid;
+    // Return user without nationalId for security (PDPL - data minimization)
+    const { nationalId: _nationalId, ...safeUser } = created;
+    void _nationalId;
 
-    return NextResponse.json({ data: safeUser }, { status: 201 });
+    return NextResponse.json({ data: safeUser as Omit<User, 'nationalId'> }, { status: 201 });
   } catch (error) {
     await logAuditEvent('USER_CREATED', {
       resourceType: 'User',

@@ -21,6 +21,8 @@ jobs:
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +47,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: lint
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -105,6 +109,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, security]
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    permissions:
+      contents: read
+      deployments: write
     environment:
       name: staging
       url: https://staging.nahj.sa
@@ -136,9 +143,11 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}
 
       - name: Run health check
+        # STAGING_URL must be set as a GitHub repository variable (e.g. https://staging.nahj.sa)
         run: |
+          HEALTH_URL="${{ vars.STAGING_URL || 'https://staging.nahj.sa' }}/api/health"
           sleep 30
-          curl -f ${{ vars.STAGING_URL }}/api/health || exit 1
+          curl -f "$HEALTH_URL" || exit 1
 
   # ─────────────────────────────────────────────
   # Deploy to Production
@@ -148,6 +157,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      deployments: write
     environment:
       name: production
       url: https://nahj.sa
