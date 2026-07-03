@@ -1,0 +1,244 @@
+service: nahj-app
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: me-central-1  # Riyadh - PDPL/SAMA compliance
+  stage: ${opt:stage, 'staging'}
+  memorySize: 512
+  timeout: 29
+  logRetentionInDays: 90
+
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    AWS_REGION: ${self:provider.region}
+    DYNAMODB_USERS_TABLE: ${self:service}-${self:provider.stage}-users
+    DYNAMODB_TRANSACTIONS_TABLE: ${self:service}-${self:provider.stage}-transactions
+    DYNAMODB_AUDIT_TABLE: ${self:service}-${self:provider.stage}-audit-logs
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - !GetAtt UsersTable.Arn
+            - !Sub '${UsersTable.Arn}/index/*'
+            - !GetAtt TransactionsTable.Arn
+            - !Sub '${TransactionsTable.Arn}/index/*'
+            - !GetAtt AuditLogsTable.Arn
+        - Effect: Allow
+          Action:
+            - kms:GenerateDataKey
+            - kms:Decrypt
+          Resource: !GetAtt NahjKMSKey.Arn
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: !Sub 'arn:aws:secretsmanager:${self:provider.region}:*:secret:nahj/*'
+
+  httpApi:
+    cors:
+      allowedOrigins:
+        - 'https://nahj.sa'
+        - 'https://www.nahj.sa'
+        - ${self:custom.allowedOrigins.${self:provider.stage}}
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+        - X-Request-ID
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      maxAge: 300
+
+custom:
+  allowedOrigins:
+    staging: 'https://staging.nahj.sa'
+    production: 'https://nahj.sa'
+
+functions:
+  nextjsApp:
+    handler: .next/standalone/server.handler
+    events:
+      - httpApi: '*'
+    environment:
+      NEXTAUTH_URL: ${ssm:/nahj/${self:provider.stage}/nextauth-url, 'https://nahj.sa'}
+
+resources:
+  Resources:
+    # KMS Key for encryption at rest (PDPL requirement)
+    NahjKMSKey:
+      Type: AWS::KMS::Key
+      Properties:
+        Description: Nahj App Encryption Key - PDPL Compliant
+        EnableKeyRotation: true
+        KeyPolicy:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+              Action: 'kms:*'
+              Resource: '*'
+
+    NahjKMSKeyAlias:
+      Type: AWS::KMS::Alias
+      Properties:
+        AliasName: alias/nahj-${self:provider.stage}
+        TargetKeyId: !Ref NahjKMSKey
+
+    # Users DynamoDB Table
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-users
+        BillingMode: PAY_PER_REQUEST
+        TableClass: STANDARD
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+          KMSMasterKeyId: !Ref NahjKMSKey
+        DeletionProtectionEnabled: true
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: DataResidency
+            Value: KSA
+          - Key: PDPLCompliant
+            Value: 'true'
+
+    # Transactions DynamoDB Table
+    TransactionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-transactions
+        BillingMode: PAY_PER_REQUEST
+        TableClass: STANDARD
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+          KMSMasterKeyId: !Ref NahjKMSKey
+        DeletionProtectionEnabled: true
+        AttributeDefinitions:
+          - AttributeName: transactionId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: transactionId
+            KeyType: HASH
+          - AttributeName: userId
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: userId-createdAt-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: DataResidency
+            Value: KSA
+          - Key: PDPLCompliant
+            Value: 'true'
+          - Key: SAMACompliant
+            Value: 'true'
+
+    # Audit Logs Table
+    AuditLogsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-audit-logs
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+          KMSMasterKeyId: !Ref NahjKMSKey
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        AttributeDefinitions:
+          - AttributeName: logId
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: logId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: DataResidency
+            Value: KSA
+          - Key: PDPLCompliant
+            Value: 'true'
+          - Key: SAMACompliant
+            Value: 'true'
+
+    # CloudWatch Log Group for Application Logs
+    AppLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /nahj/${self:provider.stage}/app
+        RetentionInDays: 90
+
+    # CloudWatch Alarm for Error Rate
+    ErrorRateAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: nahj-${self:provider.stage}-error-rate
+        AlarmDescription: High error rate detected
+        MetricName: Errors
+        Namespace: AWS/Lambda
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 2
+        Threshold: 10
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        TreatMissingData: notBreaching

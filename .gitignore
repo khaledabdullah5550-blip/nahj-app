@@ -7,10 +7,21 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
-*.local
+
+# Next.js
+.next/
+out/
+
+# Environment files (never commit secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +33,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Serverless Framework
+.serverless/
+
+# Build artifacts
+build/
+coverage/
+
+# AWS
+.aws-sam/
+
+# Vercel
+.vercel
