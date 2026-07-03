@@ -13,6 +13,8 @@ jobs:
   lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,6 +44,8 @@ jobs:
     needs: lint-and-build
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment: staging
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,6 +78,8 @@ jobs:
     needs: lint-and-build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
