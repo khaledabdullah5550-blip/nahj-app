@@ -699,7 +699,7 @@
                 <tbody>
                     <tr>
                         <td id="f1-label"><strong>Add Transactions</strong></td>
-                        <td id="f1-free"><span class="limited-icon">⚠</span> 30/month</td>
+                        <td id="f1-free"><span class="limited-icon">⚠</span> <span id="f1-free-text">30/month</span></td>
                         <td id="f1-ind"><span class="check-icon">✓</span></td>
                         <td id="f1-grp"><span class="check-icon">✓</span></td>
                         <td id="f1-spec"><span class="check-icon">✓</span></td>
@@ -727,7 +727,7 @@
                     </tr>
                     <tr>
                         <td id="f5-label"><strong>Bank SMS Analysis</strong></td>
-                        <td id="f5-free"><span class="limited-icon">⚠</span> 5/day</td>
+                        <td id="f5-free"><span class="limited-icon">⚠</span> <span id="f5-free-text">5/day</span></td>
                         <td id="f5-ind"><span class="check-icon">✓</span></td>
                         <td id="f5-grp"><span class="check-icon">✓</span></td>
                         <td id="f5-spec"><span class="check-icon">✓</span></td>
@@ -735,7 +735,7 @@
                     <tr>
                         <td id="f6-label"><strong>Export Reports</strong></td>
                         <td id="f6-free"><span class="cross-icon">✗</span></td>
-                        <td id="f6-ind"><span class="limited-icon">⚠</span> PDF only</td>
+                        <td id="f6-ind"><span class="limited-icon">⚠</span> <span id="f6-ind-text">PDF only</span></td>
                         <td id="f6-grp"><span class="check-icon">✓</span></td>
                         <td id="f6-spec"><span class="check-icon">✓</span></td>
                     </tr>
@@ -750,8 +750,8 @@
                         <td id="f8-label"><strong>Storage Capacity</strong></td>
                         <td id="f8-free"><span class="limited-icon">⚠</span> 1GB</td>
                         <td id="f8-ind"><span class="limited-icon">⚠</span> 10GB</td>
-                        <td id="f8-grp"><span class="check-icon">✓</span> Unlimited</td>
-                        <td id="f8-spec"><span class="check-icon">✓</span> Unlimited</td>
+                        <td id="f8-grp"><span class="check-icon">✓</span> <span id="f8-grp-text">Unlimited</span></td>
+                        <td id="f8-spec"><span class="check-icon">✓</span> <span id="f8-spec-text">Unlimited</span></td>
                     </tr>
                 </tbody>
             </table>
@@ -835,11 +835,11 @@ const i18n = {
         tableFeature: "الميزة", tableFree: "🎁 مجاني", tableInd: "👥 أفراد", tableGrp: "👨‍👩‍👧‍👦 مجموعات", tableSpec: "♿ ذوي الهمم",
         f1: "إضافة عمليات", f2: "التقارير الأساسية", f3: "الرسوم البيانية المتقدمة", f4: "المستشار الذكي",
         f5: "تحليل الرسائل البنكية", f6: "تصدير التقارير", f7: "دعم الأولويات", f8: "السعة التخزينية",
-        f1Free: '<span class="limited-icon">⚠</span> 30/شهر',
-        f5Free: '<span class="limited-icon">⚠</span> 5/يوم',
-        f6Ind: '<span class="limited-icon">⚠</span> PDF فقط',
-        f8Grp: '<span class="check-icon">✓</span> غير محدود',
-        f8Spec: '<span class="check-icon">✓</span> غير محدود',
+        f1FreeText: "30/شهر",
+        f5FreeText: "5/يوم",
+        f6IndText: "PDF فقط",
+        f8GrpText: "غير محدود",
+        f8SpecText: "غير محدود",
         reqLength: "8 خانات على الأقل", reqUpper: "حرف كبير (A-Z)", reqLower: "حرف صغير (a-z)",
         reqNumber: "رقم (0-9)", reqSymbol: "رمز خاص (!@#$%)",
         expenses: [
@@ -894,11 +894,11 @@ const i18n = {
         tableFeature: "Feature", tableFree: "🎁 Free", tableInd: "👥 Individual", tableGrp: "👨‍👩‍👧‍👦 Groups", tableSpec: "♿ Special Needs",
         f1: "Add Transactions", f2: "Basic Reports", f3: "Advanced Charts", f4: "AI Advisor",
         f5: "Bank SMS Analysis", f6: "Export Reports", f7: "Priority Support", f8: "Storage Capacity",
-        f1Free: '<span class="limited-icon">⚠</span> 30/month',
-        f5Free: '<span class="limited-icon">⚠</span> 5/day',
-        f6Ind: '<span class="limited-icon">⚠</span> PDF only',
-        f8Grp: '<span class="check-icon">✓</span> Unlimited',
-        f8Spec: '<span class="check-icon">✓</span> Unlimited',
+        f1FreeText: "30/month",
+        f5FreeText: "5/day",
+        f6IndText: "PDF only",
+        f8GrpText: "Unlimited",
+        f8SpecText: "Unlimited",
         reqLength: "At least 8 characters", reqUpper: "Uppercase letter (A-Z)", reqLower: "Lowercase letter (a-z)",
         reqNumber: "Number (0-9)", reqSymbol: "Special symbol (!@#$%)",
         expenses: [
@@ -1225,11 +1225,11 @@ function applyAppLocalization() {
     document.getElementById('f6-label').innerHTML = `<strong>${t.f6}</strong>`;
     document.getElementById('f7-label').innerHTML = `<strong>${t.f7}</strong>`;
     document.getElementById('f8-label').innerHTML = `<strong>${t.f8}</strong>`;
-    document.getElementById('f1-free').innerHTML = t.f1Free;
-    document.getElementById('f5-free').innerHTML = t.f5Free;
-    document.getElementById('f6-ind').innerHTML = t.f6Ind;
-    document.getElementById('f8-grp').innerHTML = t.f8Grp;
-    document.getElementById('f8-spec').innerHTML = t.f8Spec;
+    document.getElementById('f1-free-text').textContent = t.f1FreeText;
+    document.getElementById('f5-free-text').textContent = t.f5FreeText;
+    document.getElementById('f6-ind-text').textContent = t.f6IndText;
+    document.getElementById('f8-grp-text').textContent = t.f8GrpText;
+    document.getElementById('f8-spec-text').textContent = t.f8SpecText;
 
     document.querySelectorAll('.select-btn').forEach((button) => {
         button.textContent = t.selectBtn;
