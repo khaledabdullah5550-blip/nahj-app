@@ -1,0 +1,124 @@
+service: nahj-app
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: me-central-1
+  memorySize: 512
+  timeout: 30
+  environment:
+    AWS_REGION: ${self:provider.region}
+    DYNAMODB_USERS_TABLE: ${self:custom.usersTable}
+    DYNAMODB_TRANSACTIONS_TABLE: ${self:custom.transactionsTable}
+    NODE_ENV: production
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - !GetAtt UsersTable.Arn
+            - !GetAtt TransactionsTable.Arn
+            - !Sub '${UsersTable.Arn}/index/*'
+            - !Sub '${TransactionsTable.Arn}/index/*'
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: !Sub 'arn:aws:secretsmanager:${self:provider.region}:*:secret:nahj/*'
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: '*'
+
+custom:
+  usersTable: nahj-users-${opt:stage, 'dev'}
+  transactionsTable: nahj-transactions-${opt:stage, 'dev'}
+
+functions:
+  api:
+    handler: .next/standalone/server.js
+    url: true
+    events:
+      - httpApi:
+          path: /api/{proxy+}
+          method: ANY
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.usersTable}
+        BillingMode: PAY_PER_REQUEST
+        TableClass: STANDARD
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Compliance
+            Value: PDPL-SAMA
+
+    TransactionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.transactionsTable}
+        BillingMode: PAY_PER_REQUEST
+        TableClass: STANDARD
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          - AttributeName: transactionId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: transactionId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: userId-createdAt-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Compliance
+            Value: PDPL-SAMA
