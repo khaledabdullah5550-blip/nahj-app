@@ -84,5 +84,13 @@ export async function POST(request: NextRequest) {
 }
 
 function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (email.length > 254) return false;
+  const atIndex = email.indexOf('@');
+  if (atIndex < 1) return false;
+  const local = email.slice(0, atIndex);
+  const domain = email.slice(atIndex + 1);
+  if (local.length > 64 || domain.length < 4) return false;
+  const dotIndex = domain.lastIndexOf('.');
+  if (dotIndex < 1 || dotIndex === domain.length - 1) return false;
+  return true;
 }

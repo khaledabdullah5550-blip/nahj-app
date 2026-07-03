@@ -53,7 +53,7 @@ custom:
 
 functions:
   api:
-    handler: .next/standalone/server.js
+    handler: .next/standalone/server.handler
     events:
       - http:
           path: /{proxy+}

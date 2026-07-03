@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import pkg from '@/package.json';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -7,7 +8,7 @@ export async function GET() {
   const healthData = {
     status: 'healthy',
     service: 'nahj-app',
-    version: process.env.npm_package_version ?? '1.0.0',
+    version: pkg.version,
     timestamp: new Date().toISOString(),
     region: process.env.AWS_REGION ?? 'me-central-1',
     environment: process.env.NODE_ENV ?? 'development',
