@@ -8,17 +8,33 @@ import {
   parseRequestBody,
   parseQueryParams,
 } from '@/lib/validation';
+import { withAuth } from '@/lib/withAuth';
+import { rateLimiters } from '@/lib/ratelimit';
 import type { Transaction } from '@/lib/dynamodb';
+import type { AuthenticatedSession } from '@/lib/withAuth';
 
-// GET /api/transactions - List transactions for a user
-export async function GET(request: NextRequest) {
+// GET /api/transactions - List transactions for the authenticated user
+export const GET = withAuth(async (request: NextRequest, session: AuthenticatedSession) => {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
 
-  if (!userId) {
+  // Rate-limit by userId
+  const rl = rateLimiters.listTransactions.limit(session.userId);
+  if (!rl.success) {
     return NextResponse.json(
-      { error: 'معامل userId مطلوب' },
-      { status: 400 }
+      { error: 'طلبات كثيرة - حاول لاحقاً' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rl.retryAfter) },
+      }
+    );
+  }
+
+  // Authorization: if a userId param is provided it must match the session
+  const queriedUserId = searchParams.get('userId');
+  if (queriedUserId && queriedUserId !== session.userId) {
+    return NextResponse.json(
+      { error: 'غير مسموح - لا يمكن الوصول لبيانات مستخدم آخر' },
+      { status: 403 }
     );
   }
 
@@ -30,10 +46,11 @@ export async function GET(request: NextRequest) {
   const { limit } = queryResult.data;
 
   try {
-    const result = await listTransactionsByUser(userId, limit);
+    // Always use the session userId — never trust the query param for data access
+    const result = await listTransactionsByUser(session.userId, limit);
 
     await logAuditEvent('TRANSACTIONS_LISTED', {
-      userId,
+      userId: session.userId,
       resourceType: 'Transaction',
       ipAddress: getClientIP(request),
       userAgent: getUserAgent(request),
@@ -51,7 +68,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     await logAuditEvent('TRANSACTIONS_LISTED', {
-      userId,
+      userId: session.userId,
       resourceType: 'Transaction',
       ipAddress: getClientIP(request),
       userAgent: getUserAgent(request),
@@ -62,17 +79,30 @@ export async function GET(request: NextRequest) {
     console.error('خطأ في جلب المعاملات:', error);
     return NextResponse.json({ error: 'خطأ في الخادم' }, { status: 500 });
   }
-}
+});
 
-// POST /api/transactions - Create a transaction
-export async function POST(request: NextRequest) {
+// POST /api/transactions - Create a transaction for the authenticated user
+export const POST = withAuth(async (request: NextRequest, session: AuthenticatedSession) => {
+  // Rate-limit by userId
+  const rl = rateLimiters.createTransaction.limit(session.userId);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'طلبات كثيرة - حاول لاحقاً' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rl.retryAfter) },
+      }
+    );
+  }
+
   const parseResult = await parseRequestBody(request, CreateTransactionSchema);
   if (parseResult.data === null) {
     return NextResponse.json({ error: parseResult.error }, { status: 400 });
   }
 
-  const { userId, type, amount, currency, description, category, referenceNumber } =
-    parseResult.data;
+  const { type, amount, currency, description, category, referenceNumber } = parseResult.data;
+  // Always use session userId — ignore any userId from the request body
+  const userId = session.userId;
 
   try {
     const now = new Date().toISOString();
@@ -83,7 +113,7 @@ export async function POST(request: NextRequest) {
       userId,
       type,
       amount,
-      currency,
+      currency: currency ?? 'SAR',
       description,
       category,
       referenceNumber,
@@ -120,4 +150,4 @@ export async function POST(request: NextRequest) {
     console.error('خطأ في إنشاء المعاملة:', error);
     return NextResponse.json({ error: 'خطأ في الخادم' }, { status: 500 });
   }
-}
+});

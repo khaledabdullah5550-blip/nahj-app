@@ -15,6 +15,14 @@ export const CreateUserSchema = z.object({
     .email('البريد الإلكتروني غير صحيح')
     .max(254, 'البريد الإلكتروني طويل جداً')
     .toLowerCase(),
+  password: z
+    .string()
+    .min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')
+    .max(128, 'كلمة المرور طويلة جداً')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم'
+    ),
   phone: z
     .string()
     .regex(/^(\+966|0)5[0-9]{8}$/, 'رقم الجوال السعودي غير صحيح (مثال: 0512345678)')
@@ -32,7 +40,6 @@ export const UpdateUserSchema = CreateUserSchema.partial().omit({ consent: true 
 
 // Transaction validation schemas
 export const CreateTransactionSchema = z.object({
-  userId: z.string().uuid('معرّف المستخدم غير صحيح'),
   type: z.enum(['credit', 'debit'], {
     errorMap: () => ({ message: 'نوع المعاملة يجب أن يكون credit أو debit' }),
   }),

@@ -18,6 +18,8 @@ export interface User {
   email: string;
   phone?: string;
   nationalId?: string;
+  /** bcrypt hash of the user's password — never returned in API responses */
+  passwordHash?: string;
   status: 'active' | 'inactive' | 'suspended';
   consentGiven: boolean;
   consentTimestamp: string;
