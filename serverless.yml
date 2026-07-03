@@ -1,0 +1,171 @@
+service: nahj-app
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: me-central-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  timeout: 29
+  logRetentionInDays: 90
+
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    AWS_REGION: ${self:provider.region}
+    DYNAMODB_USERS_TABLE: ${self:custom.usersTable}
+    DYNAMODB_TRANSACTIONS_TABLE: ${self:custom.transactionsTable}
+    DYNAMODB_AUDIT_TABLE: ${self:custom.auditTable}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - !GetAtt UsersTable.Arn
+            - !GetAtt TransactionsTable.Arn
+            - !GetAtt AuditTable.Arn
+            - !Sub '${UsersTable.Arn}/index/*'
+            - !Sub '${TransactionsTable.Arn}/index/*'
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource:
+            - !Sub 'arn:aws:secretsmanager:${self:provider.region}:*:secret:nahj/*'
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: '*'
+
+custom:
+  usersTable: nahj-users-${self:provider.stage}
+  transactionsTable: nahj-transactions-${self:provider.stage}
+  auditTable: nahj-audit-logs-${self:provider.stage}
+
+functions:
+  api:
+    handler: .next/standalone/server.js
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: false
+      - http:
+          path: /
+          method: ANY
+          cors: false
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:custom.usersTable}
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Compliance
+            Value: PDPL-SAMA
+          - Key: DataResidency
+            Value: KSA
+
+    TransactionsTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:custom.transactionsTable}
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          - AttributeName: transactionId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: transactionId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: userId-createdAt-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Compliance
+            Value: PDPL-SAMA
+          - Key: DataResidency
+            Value: KSA
+
+    AuditTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:custom.auditTable}
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          - AttributeName: eventId
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: eventId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        Tags:
+          - Key: Project
+            Value: nahj
+          - Key: Compliance
+            Value: PDPL-SAMA
+          - Key: DataResidency
+            Value: KSA
