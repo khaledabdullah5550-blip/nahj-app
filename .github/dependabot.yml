@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # فحص مكتبات الواجهة الرئيسية (React, Firebase, Vite...)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "security"
+
+  # فحص مكتبات الدوال السحابية (Cloud Functions)
+  - package-ecosystem: "npm"
+    directory: "/functions"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "security"
+
+  # فحص إعدادات GitHub Actions نفسها إن وُجدت مستقبلًا
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

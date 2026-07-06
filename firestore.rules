@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // كل مستخدم يقدر يقرأ ويكتب بياناته الخاصة فقط، ولا أحد غيره حتى لو معرف حسابه بالرابط
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // صندوق الملاحظات: أي مستخدم مسجل دخول يقدر يرسل ملاحظة
+    // القراءة الكاملة مسموحة فقط لحساب المطوّر (صاحب المشروع) عبر لوحة الإدارة الداخلية
+    match /feedback/{feedbackId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == "4IDARHpPnmS0NrK1xYD1cnryZcM2";
+      allow update, delete: if false;
+    }
+
+    // أي مسار آخر غير معرّف صراحة يُمنع افتراضيًا
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
